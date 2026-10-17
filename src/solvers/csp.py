@@ -1,7 +1,7 @@
-from src.models.puzzle import Puzzle
+from itertools import combinations, product
 from src.validator import Validator
+from src.models.puzzle import Puzzle
 from src.models.cage import Cage
-from itertools import combinations
 
 
 class KillerSolver:
@@ -10,33 +10,24 @@ class KillerSolver:
         self.size = puzzle.grid.shape[0]
         self.blo_size = int(self.size ** 0.5)
         self.validator = Validator(puzzle)
-        self.history = []  # Liste pour stocker l'historique des mouvements effectués
-        # Dictionnaire qui contiendra les valeurs possibles de chaque case
+
+        self.history = []
         self.domains = {}
 
-    def write_value(self, row, col, value):
-        if self.puzzle.grid[row, col] != 0:
-            return False
+        # Compteurs pour mesurer les performances
+        self.nodes_explored = 0
+        self.backtracks = 0
+        self.propagations = 0
 
-        if value not in self.domains[(row, col)]:
-            return False
+    def get_cage_combinations(self, cage):
+        numbers = range(1, self.size + 1)
+        k = len(cage.cells)
 
-        if self.validator.is_valid_move(row, col, value):
-            # On sauvegarde l'état avant la modification
-            init_val = self.puzzle.grid[row, col]
-            old_domain = self.domains[(row, col)].copy()
-            self.history.append(("grid", (row, col), int(init_val)))
-            for val in old_domain:
-                if val != value:
-                    self.history.append(("domain", (row, col), val))
-
-            # On affecte la valeur et on réduit son domaine
-            self.puzzle.grid[row, col] = value
-            self.domains[(row, col)] = {value}
-
-            return True
-
-        return False
+        return [
+            combo
+            for combo in combinations(numbers, k)
+            if sum(combo) == cage.target_sum
+        ]
 
     def initialize_domains(self):
         self.domains = {}
@@ -56,21 +47,23 @@ class KillerSolver:
                 else:
                     self.domains[(row, col)] = {int(value)}
 
-    def undo_to(self, checkpoint):
-        if len(self.history) < checkpoint or checkpoint < 0:
+    def write_value(self, row, col, value, reason="guess"):
+        if self.puzzle.grid[row, col] != 0:
             return False
 
-        while len(self.history) > checkpoint:
-            
-            old_type, (row, col), old_value = self.history.pop()
+        if value not in self.domains[(row, col)]:
+            return False
 
-            # On restaure la case et son domaine
-            if old_type == "grid":
-                self.puzzle.grid[row, col] = old_value
+        if not self.validator.is_valid_move(row, col, value):
+            return False
 
-            elif old_type == "domain":
-                self.domains[(row, col)].add(old_value)
+        self.history.append(("grid", (row, col), 0))
 
+        for val in self.domains[(row, col)].copy():
+            if val != value:
+                self.remove_from_domain(row, col, val)
+
+        self.puzzle.grid[row, col] = value
         return True
 
     def remove_from_domain(self, row, col, value):
@@ -80,24 +73,36 @@ class KillerSolver:
         if value not in self.domains[(row, col)]:
             return False
 
-        # On sauvegarde l'état avant la modification
         self.history.append(("domain", (row, col), value))
         self.domains[(row, col)].remove(value)
         return True
 
+    def undo_to(self, checkpoint):
+        if checkpoint < 0 or checkpoint > len(self.history):
+            return False
 
+        while len(self.history) > checkpoint:
+            old_type, (row, col), old_value = self.history.pop()
+
+            if old_type == "grid":
+                self.puzzle.grid[row, col] = old_value
+
+            elif old_type == "domain":
+                self.domains[(row, col)].add(old_value)
+
+        return True
 
     def get_neighbors(self, row, col):
         neighbors = set()
 
-        # On ajoute les cases de la même ligne et de la même colonne
+        # Cases de la même ligne et colonne
         for i in range(self.size):
             if i != col:
                 neighbors.add((row, i))
             if i != row:
                 neighbors.add((i, col))
 
-        # On ajoute les cases du même bloc
+        # Cases du même bloc
         start_row = (row // self.blo_size) * self.blo_size
         start_col = (col // self.blo_size) * self.blo_size
 
@@ -106,7 +111,7 @@ class KillerSolver:
                 if (i, j) != (row, col):
                     neighbors.add((i, j))
 
-        # On ajoute les cases de la meme cage
+        # Cases de la même cage
         cage_id = self.puzzle.cage_index[row][col]
         cage = self.puzzle.cages[cage_id]
 
@@ -116,41 +121,116 @@ class KillerSolver:
 
         return neighbors
 
-    def get_cage_combinations(self, cage):
-        numbers = range(1, self.size + 1)
-        k = len(cage.cells)
+    def propagate_cage(self, cage_id):
+        cage = self.puzzle.cages[cage_id]
+        cells = cage.cells
 
-        return [
-            combo
-            for combo in combinations(numbers, k)
-            if sum(combo) == cage.target_sum
-        ]
-    
+        domains = [self.domains[(row, col)] for row, col in cells]
+        valid_combinations = []
+
+        for combo in product(*domains):
+            if len(set(combo)) == len(combo) and sum(combo) == cage.target_sum:
+                valid_combinations.append(combo)
+
+        if not valid_combinations:
+            return False
+
+        for i, (row, col) in enumerate(cells):
+            possible_values = {combo[i] for combo in valid_combinations}
+
+            for value in self.domains[(row, col)].copy():
+                if value not in possible_values:
+                    self.remove_from_domain(row, col, value)
+
+        return True
+
     def propagate(self):
+        # Un appel à propagate = une propagation
+        self.propagations += 1
+
         changed = True
 
-        # On continue tant que les domaines évoluent
         while changed:
             changed = False
+            checkpoint = len(self.history)
 
+            # Propagation AllDifferent
             for (row, col), domain in self.domains.items():
 
-                # Si une case n'a plus de valeur possible : contradiction
                 if len(domain) == 0:
                     return False
 
-                # Si une seule valeur est possible
                 if len(domain) == 1:
                     value = next(iter(domain))
 
-                    # On retire cette valeur des domaines des voisins
+                    if self.puzzle.grid[row, col] == 0:
+                        if not self.write_value(row, col, value, reason="deduction"):
+                            return False
+
                     for i, j in self.get_neighbors(row, col):
                         if value in self.domains[(i, j)]:
                             self.remove_from_domain(i, j, value)
-                            changed = True
 
-                            # Un domaine vide signifie une contradiction
                             if len(self.domains[(i, j)]) == 0:
                                 return False
 
+            # Propagation des sommes des cages
+            for cage_id in range(len(self.puzzle.cages)):
+                if not self.propagate_cage(cage_id):
+                    return False
+
+            if len(self.history) > checkpoint:
+                changed = True
+
         return True
+
+    def select_variable(self):
+        # MRV : choisir la case avec le plus petit domaine > 1
+        min_domain_size = float("inf")
+        selected_var = None
+
+        for (row, col), domain in self.domains.items():
+            if 1 < len(domain) < min_domain_size:
+                min_domain_size = len(domain)
+                selected_var = (row, col)
+
+        return selected_var
+
+    def search(self):
+        selected_var = self.select_variable()
+
+        if selected_var is None:
+            return bool(self.validator.is_solved())
+
+        row, col = selected_var
+
+        for value in sorted(self.domains[(row, col)]):
+            # Une nouvelle hypothèse est testée
+            self.nodes_explored += 1
+
+            checkpoint = len(self.history)
+
+            if self.write_value(row, col, value):
+                if self.propagate():
+                    if self.search():
+                        return True
+
+            # Cette hypothèse n'a pas abouti
+            self.backtracks += 1
+            self.undo_to(checkpoint)
+
+        return False
+
+    def solve(self):
+        # Réinitialisation des compteurs pour chaque résolution
+        self.nodes_explored = 0
+        self.backtracks = 0
+        self.propagations = 0
+        self.history = []
+
+        self.initialize_domains()
+
+        if not self.propagate():
+            return False
+
+        return self.search()

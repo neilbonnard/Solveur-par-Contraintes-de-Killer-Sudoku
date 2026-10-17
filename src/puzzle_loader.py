@@ -1,8 +1,8 @@
 import json
 import numpy as np
 
-from models.puzzle import Puzzle
-from models.cage import Cage
+from src.models.puzzle import Puzzle
+from src.models.cage import Cage
 
 
 def load_json(filepath):
