@@ -1,0 +1,24 @@
+Sun Oct 18 17:24:49 2026    profile.prof
+
+         -1365787042 function calls (-1365810174 primitive calls) in 1428.150 seconds
+
+   Ordered by: cumulative time
+   List reduced from 1115 to 14 due to restriction <'csp.py'>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+      100    0.001    0.000 1427.421   14.274 C:\Users\Neil Bonnard\OneDrive\Documents\Solveur-par-Contraintes-de-Killer-Sudoku\src\solvers\csp.py:224(solve)
+    41053   21.257    0.001 1420.631    0.035 C:\Users\Neil Bonnard\OneDrive\Documents\Solveur-par-Contraintes-de-Killer-Sudoku\src\solvers\csp.py:147(propagate)
+20635/100    0.219    0.000 1416.476   14.165 C:\Users\Neil Bonnard\OneDrive\Documents\Solveur-par-Contraintes-de-Killer-Sudoku\src\solvers\csp.py:199(search)
+  1919977  955.854    0.000 1346.027    0.001 C:\Users\Neil Bonnard\OneDrive\Documents\Solveur-par-Contraintes-de-Killer-Sudoku\src\solvers\csp.py:124(propagate_cage)
+  2420834   27.448    0.000   42.432    0.000 C:\Users\Neil Bonnard\OneDrive\Documents\Solveur-par-Contraintes-de-Killer-Sudoku\src\solvers\csp.py:95(get_neighbors)
+   163223    0.656    0.000    9.248    0.000 C:\Users\Neil Bonnard\OneDrive\Documents\Solveur-par-Contraintes-de-Killer-Sudoku\src\solvers\csp.py:50(write_value)
+    40035    1.516    0.000    2.475    0.000 C:\Users\Neil Bonnard\OneDrive\Documents\Solveur-par-Contraintes-de-Killer-Sudoku\src\solvers\csp.py:80(undo_to)
+  1363968    1.711    0.000    2.397    0.000 C:\Users\Neil Bonnard\OneDrive\Documents\Solveur-par-Contraintes-de-Killer-Sudoku\src\solvers\csp.py:69(remove_from_domain)
+    20635    0.583    0.000    0.799    0.000 C:\Users\Neil Bonnard\OneDrive\Documents\Solveur-par-Contraintes-de-Killer-Sudoku\src\solvers\csp.py:187(select_variable)
+      100    0.011    0.000    0.080    0.001 C:\Users\Neil Bonnard\OneDrive\Documents\Solveur-par-Contraintes-de-Killer-Sudoku\src\solvers\csp.py:32(initialize_domains)
+     3380    0.036    0.000    0.063    0.000 C:\Users\Neil Bonnard\OneDrive\Documents\Solveur-par-Contraintes-de-Killer-Sudoku\src\solvers\csp.py:22(get_cage_combinations)
+        1    0.000    0.000    0.001    0.001 C:\Users\Neil Bonnard\OneDrive\Documents\Solveur-par-Contraintes-de-Killer-Sudoku\src\solvers\csp.py:1(<module>)
+      100    0.000    0.000    0.000    0.000 C:\Users\Neil Bonnard\OneDrive\Documents\Solveur-par-Contraintes-de-Killer-Sudoku\src\solvers\csp.py:8(__init__)
+        1    0.000    0.000    0.000    0.000 C:\Users\Neil Bonnard\OneDrive\Documents\Solveur-par-Contraintes-de-Killer-Sudoku\src\solvers\csp.py:7(KillerSolver)
+
+
