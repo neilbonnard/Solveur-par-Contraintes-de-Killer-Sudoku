@@ -2,6 +2,7 @@ from itertools import combinations, product
 from src.validator import Validator
 from src.models.puzzle import Puzzle
 from src.models.cage import Cage
+from itertools import permutations
 
 
 class KillerSolver:
@@ -125,21 +126,33 @@ class KillerSolver:
         cage = self.puzzle.cages[cage_id]
         cells = cage.cells
 
+        # On récupère les domaines actuels des cases
         domains = [self.domains[(row, col)] for row, col in cells]
-        valid_combinations = []
 
-        for combo in product(*domains):
-            if len(set(combo)) == len(combo) and sum(combo) == cage.target_sum:
-                valid_combinations.append(combo)
+        # On récupère uniquement les combinaisons ayant la bonne somme
+        combinations = self.get_cage_combinations(cage)
 
-        if not valid_combinations:
+        possible_values = [set() for _ in cells]
+        found = False
+
+        for combo in combinations:
+            # On teste les différentes positions possibles des chiffres
+            for perm in permutations(combo):
+
+                if all(perm[i] in domains[i] for i in range(len(cells))):
+                    found = True
+
+                    for i, value in enumerate(perm):
+                        possible_values[i].add(value)
+
+        # Aucune affectation possible : contradiction
+        if not found:
             return False
 
+        # On retire les valeurs impossibles
         for i, (row, col) in enumerate(cells):
-            possible_values = {combo[i] for combo in valid_combinations}
-
             for value in self.domains[(row, col)].copy():
-                if value not in possible_values:
+                if value not in possible_values[i]:
                     self.remove_from_domain(row, col, value)
 
         return True

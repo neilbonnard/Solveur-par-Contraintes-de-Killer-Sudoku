@@ -3,7 +3,7 @@ import time
 from pathlib import Path
 
 from src.puzzle_loader import load_json
-from src.solvers.csp import KillerSolver
+from src.solvers.csp_cached import KillerSolver
 
 
 def main():
